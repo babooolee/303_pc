@@ -1,0 +1,81 @@
+우선
+아래 링크를 참고하여 redux tool kit에 대한 설정을 하자
+https://duckgugong.tistory.com/315
+
+ 
+Redux Tool kit
+
+Redux Took kit? 리덕스를 사용하려면 작성해야할 코드와 파일이 기본적으로 너무 많다 → 보일러플레이트가 증가한다! Redux Tool Kit은 리덕스를 편하게 사용하는데 유용한 패키지가 들어있는 도구
+
+duckgugong.tistory.com
+createAsyncThunk?
+redux에서 비동기 처리를하기 위해 사용한 미들웨어 redux thunk와 마찬가지로 redux tool kit에서는 creatAsyncThunk를 사용할 수 있는데 따로 미들웨어 설정을 할 필요 없이 redux tool kit에서 기본적으로 제공해준다!
+사용법
+slice 만들기
+createAsyncThunk의 첫번째 파라미터는 action의 이름을 넣어주고 두번째 파라미터는 처리할 비동기 함수와 그 안에 리턴할 payload를 넣어준다.
+extraReducers에서는 createAsyncThunk로 action의 peding, fulfilled, rejected 상태에 대한 처리 결과를 넣을 수 있다!
+아래 예시를 보면 비동기 함수가 fulfilled 되었을 때, action의 payload로 state를 변경해준다!
+import {createSlice, createAsyncThunk} from "@reduxjs/toolkit";
+import axios from "axios";
+// slice 생성하기
+
+// createAsyncThunk 생성하기
+export const loadBucket = createAsyncThunk(
+  // action 이름
+  "load/Bucket",
+  // 처리할 비동기 함수
+  async () => {
+    // 서버에서 데이터를 불러옴
+    const res = await axios.get("http://localhost:5008/bucket");
+    // action의 payload 리턴
+    return res.data;
+  }
+);
+
+const bucketSlice = createSlice({
+  name: "bucket",
+  initialState: {list: []},
+  reducers: {},
+  // extraReducer에 비동기 함수의 pending, fulfilled, rejected를 처리할 내용을 넣어준다!
+  extraReducers: {
+    [loadBucket.pending]: (state, action) => {
+      console.log('pending');
+    },
+    // fullflled 되었을 때, 서버에서 받아온 데이터를 state에 넣어줌!
+    // 첫번째 파라미터는 redux의 state이고 두번째 파라미터는 action
+    [loadBucket.fulfilled]: (state, action) => {
+      state.list = action.payload;
+      console.log('fulfilled');
+    },
+    [loadBucket.rejected]: (state, action) => {
+      console.log('rejected')
+    }
+  }
+
+})
+export default bucketSlice.reducer;
+아래처럼 컴포넌트에서 createAsync로 만든 비동기 함수를 useDispatch로 실행시키면 끝!
+import {loadBucket} from "./redux/modules/bucketSlice";
+import {useDispatch, useSelector} from "react-redux";
+import {useEffect} from "react";
+
+const App = () => {
+  const bucket_list = useSelector(state => state.bucket.list);
+  const dispatch = useDispatch();
+  useEffect(() => {
+    // 서버에서 데이터를 불러오는 createAsyncThunk 호출
+    dispatch(loadBucket());
+  }, [])
+  return (
+    <>
+      {bucket_list.map((item, index) => (
+        <div key={index}>
+          {item.text}
+        </div>
+      ))}
+    </>
+
+  );
+}
+
+export default App;
